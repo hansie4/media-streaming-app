@@ -15,15 +15,54 @@ if (process.env.NODE_ENV === 'development') {
 }
 
 router.get('/', async (_, res) => {
-    fs.readdir(process.env.MEDIA_LOCATION, (err, files) => {
-        if (err) {
-            res.status(500).json({ msg: err.message })
-        } else if (files) {
-            res.status(200).json({ files })
-        } else {
-            res.sendStatus(200)
+    const matrix = getAllFiles(process.env.MEDIA_LOCATION, [])
+
+    const mediaTree = getMediaTree(process.env.MEDIA_LOCATION)
+
+    let testMatrix = []
+
+    matrix.forEach((value) => {
+        try {
+            fs.accessSync(value, fs.constants.R_OK)
+
+            testMatrix.push(true)
+        } catch (error) {
+            testMatrix.push(false)
         }
     })
+
+    const test = fs.readFileSync('D:\\Media\\test.txt')
+
+    res.status(200).json({ matrix, testMatrix, mediaTree, test })
 })
+
+const getAllFiles = (currentLocation, files) => {
+    const currentDirectory = fs.readdirSync(currentLocation)
+
+    currentDirectory.forEach((value) => {
+        if (value.match(/^.*\.(jpg|JPG|gif|GIF|doc|DOC|pdf|PDF|txt|mkv|mp4|m4v)$/)) {
+            files.push(currentLocation.concat(value))
+        } else {
+            getFiles(currentLocation.concat(value, '\\'), files)
+        }
+    })
+
+    return files
+}
+
+const getMediaTree = (currentLocation) => {
+    let mediaTree = []
+    const currentDirectory = fs.readdirSync(currentLocation)
+
+    currentDirectory.forEach((value) => {
+        if (value.match(/^.*\.(jpg|JPG|gif|GIF|doc|DOC|pdf|PDF|txt|mkv|mp4|m4v)$/)) {
+            mediaTree.push(currentLocation.concat(value))
+        } else {
+            mediaTree.push([value, getMediaTree(currentLocation.concat(value, '\\'))])
+        }
+    })
+
+    return mediaTree
+}
 
 module.exports = router
